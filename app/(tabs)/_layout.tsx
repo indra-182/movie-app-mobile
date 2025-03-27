@@ -1,9 +1,21 @@
-import { View, Text, ImageBackground, Image } from 'react-native';
+import {
+  View,
+  Text,
+  ImageBackground,
+  Image,
+  ImageSourcePropType,
+} from 'react-native';
 import { Tabs } from 'expo-router';
 import { images } from '@/constants/images';
 import { icons } from '@/constants/icons';
 
-const TabIcon = ({ focused, icon, title }: any) => {
+interface TabIconProps {
+  focused: boolean;
+  icon: ImageSourcePropType;
+  title: string;
+}
+
+const TabIcon = ({ focused, icon, title }: TabIconProps) => {
   if (focused) {
     return (
       <ImageBackground
@@ -25,7 +37,7 @@ const TabIcon = ({ focused, icon, title }: any) => {
   );
 };
 
-const _Layout = () => {
+const _Layout: React.FC = () => {
   return (
     <Tabs
       screenOptions={{
@@ -54,7 +66,7 @@ const _Layout = () => {
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <TabIcon focused={focused} icon={icons.home} title='Home' />
           ),
         }}
@@ -64,7 +76,7 @@ const _Layout = () => {
         options={{
           title: 'Search',
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <TabIcon focused={focused} icon={icons.search} title='Search' />
           ),
         }}
@@ -74,7 +86,7 @@ const _Layout = () => {
         options={{
           title: 'Saved',
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <TabIcon focused={focused} icon={icons.save} title='Saved' />
           ),
         }}
@@ -84,7 +96,7 @@ const _Layout = () => {
         options={{
           title: 'Profile',
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <TabIcon focused={focused} icon={icons.person} title='Profile' />
           ),
         }}
