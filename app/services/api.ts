@@ -45,3 +45,7 @@ const fetchMovieDetails = async (movieId: string) => {
 }
 
 export { fetchMovies, fetchMovieDetails };
+// Add an empty default export to satisfy Expo Router (No Warning in the console)
+export default function APIComponent() {
+    return null; // This component will never be rendered
+}

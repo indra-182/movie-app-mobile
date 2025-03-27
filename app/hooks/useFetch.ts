@@ -16,9 +16,9 @@ function useFetch<TData>(
 
     const {
         data,
-        isLoading: loading,
+        isLoading,
         error,
-        refetch: fetch,
+        refetch,
         ...rest
     } = useQuery<TData, Error>({
         queryKey: queryKeyArray,
@@ -33,9 +33,9 @@ function useFetch<TData>(
 
     return {
         data: data || null,
-        loading,
+        isLoading,
         error,
-        fetch,
+        refetch,
         reset,
         ...rest
     };
