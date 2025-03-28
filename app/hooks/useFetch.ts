@@ -1,35 +1,50 @@
 import { useQuery, UseQueryOptions, useQueryClient } from '@tanstack/react-query';
 
 /**
+ * Options for the useFetch hook
+ */
+export type UseFetchOptions<TData> = Omit<
+    UseQueryOptions<TData, Error, TData>,
+    'queryKey' | 'queryFn'
+>;
+
+/**
+ * Results returned by the useFetch hook
+ */
+export interface UseFetchResult<TData> {
+    /**
+     * The fetched data or null if not loaded
+     */
+    data: TData | null;
+
+    /**
+     * True while the initial load is in progress
+     */
+    isLoading: boolean;
+
+    /**
+     * Error object if the query failed
+     */
+    error: Error | null;
+
+    /**
+     * Function to manually refetch the data
+     */
+    refetch: () => Promise<any>;
+
+    /**
+     * Utility to reset the query state and data
+     */
+    reset: () => void;
+
+    /**
+     * All remaining React Query result properties
+     */
+    [key: string]: any;
+}
+
+/**
  * Custom React Query hook that simplifies data fetching with additional utilities
- * 
- * @template TData - Type of the data returned by the query
- * 
- * @param {string | string[]} queryKey - Unique identifier for the query cache.
- *   Can be a string or array of strings. Arrays are useful for dependent queries.
- *   Example: ['movies', 'popular'] or 'user-profile'
- * 
- * @param {() => Promise<TData>} fetchFn - Asynchronous function that returns the data.
- *   This function should handle all API communication and error throwing.
- *   Example: () => axios.get('/api/movies').then(res => res.data)
- * 
- * @param {Omit<UseQueryOptions<TData, Error, TData>, 'queryKey' | 'queryFn'>} [options] - 
- *   Optional configuration object for the query with the following common properties:
- *   - @property {boolean} [enabled] - Whether the query should execute automatically
- *   - @property {number} [staleTime] - Duration (ms) before data becomes stale
- *   - @property {number} [cacheTime] - Duration (ms) to keep unused data in cache
- *   - @property {boolean} [refetchOnMount] - Whether to refetch when component mounts
- *   - @property {Function} [onSuccess] - Callback when query succeeds
- *   - @property {Function} [onError] - Callback when query fails
- * 
- * @returns {Object} - Query result object with enhanced functionality:
- *   - @property {TData | null} data - The fetched data or null if not loaded
- *   - @property {boolean} isLoading - True while the initial load is in progress
- *   - @property {Error | null} error - Error object if the query failed
- *   - @property {Function} refetch - Function to manually refetch the data
- *   - @property {Function} reset - Utility to reset the query state and data
- *   - @property {...Object} ...rest - All remaining React Query result properties
- *     (isFetching, isError, isSuccess, status, etc.)
  * 
  * @example
  * // Basic usage
@@ -45,8 +60,8 @@ import { useQuery, UseQueryOptions, useQueryClient } from '@tanstack/react-query
 function useFetch<TData>(
     queryKey: string | string[],
     fetchFn: () => Promise<TData>,
-    options?: Omit<UseQueryOptions<TData, Error, TData>, 'queryKey' | 'queryFn'>
-) {
+    options?: UseFetchOptions<TData>
+): UseFetchResult<TData> {
     const queryKeyArray = Array.isArray(queryKey) ? queryKey : [queryKey];
     const queryClient = useQueryClient();
 
