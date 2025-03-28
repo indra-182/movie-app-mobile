@@ -1,98 +1,39 @@
-import { useQuery, UseQueryOptions, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from "react";
 
-/**
- * Options for the useFetch hook
- */
-export type UseFetchOptions<TData> = Omit<
-    UseQueryOptions<TData, Error, TData>,
-    'queryKey' | 'queryFn'
->;
+const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
+    const [data, setData] = useState<T | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isError, setIsError] = useState<Error | null>(null);
 
-/**
- * Results returned by the useFetch hook
- */
-export interface UseFetchResult<TData> {
-    /**
-     * The fetched data or null if not loaded
-     */
-    data: TData | null;
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            setIsError(null);
 
-    /**
-     * True while the initial load is in progress
-     */
-    isLoading: boolean;
+            const result = await fetchFunction();
+            setData(result);
+        } catch (err) {
+            setIsError(
+                err instanceof Error ? err : new Error("An unknown error occurred")
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    /**
-     * Error object if the query failed
-     */
-    error: Error | null;
-
-    /**
-     * Function to manually refetch the data
-     */
-    refetch: () => Promise<any>;
-
-    /**
-     * Utility to reset the query state and data
-     */
-    reset: () => void;
-
-    /**
-     * All remaining React Query result properties
-     */
-    [key: string]: any;
-}
-
-/**
- * Custom React Query hook that simplifies data fetching with additional utilities
- * 
- * @example
- * // Basic usage
- * const { data, isLoading } = useFetch('todos', fetchTodos);
- * 
- * // With options
- * const { data } = useFetch(
- *   ['user', userId],
- *   () => fetchUser(userId),
- *   { staleTime: 5000 }
- * );
- */
-function useFetch<TData>(
-    queryKey: string | string[],
-    fetchFn: () => Promise<TData>,
-    options?: UseFetchOptions<TData>
-): UseFetchResult<TData> {
-    const queryKeyArray = Array.isArray(queryKey) ? queryKey : [queryKey];
-    const queryClient = useQueryClient();
-
-    const {
-        data,
-        isLoading,
-        error,
-        refetch,
-        ...rest
-    } = useQuery<TData, Error>({
-        queryKey: queryKeyArray,
-        queryFn: fetchFn,
-        ...options
-    });
-
-    /**
-     * Resets the query state and removes its data from the cache
-     * Useful for clearing sensitive data or forcing fresh reload next time
-     */
     const reset = () => {
-        queryClient.resetQueries({ queryKey: queryKeyArray });
+        setData(null);
+        setIsError(null);
+        setIsLoading(false);
     };
 
-    return {
-        data: data || null,
-        isLoading,
-        error,
-        refetch,
-        reset,
-        ...rest
-    };
-}
+    useEffect(() => {
+        if (autoFetch) {
+            fetchData();
+        }
+    }, []);
+
+    return { data, isLoading, isError, refetch: fetchData, reset };
+};
 
 export default useFetch;
