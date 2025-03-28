@@ -16,19 +16,42 @@ import { fetchMovies } from '../services/api';
 import useFetch from '../hooks/useFetch';
 
 import SearchBar from '../components/SearchBar';
+import MovieCard from '../components/MovieCard';
 
 export default function Index() {
   const router = useRouter();
-  const query = '';
+  const [query, setQuery] = useState('');
 
+  /**
+   * Fetches movie data using a custom useFetch hook with React Query configuration
+   *
+   * @param {Array} queryKey - Unique identifier for the query cache
+   *   - ['movies', query] array helps cache and invalidate requests properly
+   *   - Changes to this array will trigger refetches automatically
+   *
+   * @param {Function} queryFn - Async function that executes the API call
+   *   - Wraps the fetchMovies service with current search query
+   *   - Returns Promise with movie data
+   *
+   * @param {Object} options - React Query configuration options
+   *   - @property {boolean} enabled - Controls if query should execute immediately
+   *   - @property {number} staleTime - Duration (ms) before data becomes stale
+   *     (1 minute in this case - data will be fresh for 60s before refetching)
+   *
+   * @returns {Object} - Query result object containing:
+   *   - @property {Array} data - Movie data from API (aliased as 'movies')
+   *   - @property {boolean} isLoading - Loading state indicator
+   *   - @property {Error|null} error - Error object if request failed
+   *   - @property {Function} refetch - Manual refetch trigger function
+   */
   const {
     data: movies,
     isLoading,
     error,
     refetch,
   } = useFetch(['movies', query], () => fetchMovies({ query }), {
-    enabled: true, // This will fetch immediately on component mount
-    staleTime: 1000 * 60 * 1, // 1 minute
+    enabled: true, // Fetches immediately when component mounts
+    staleTime: 1000 * 60 * 1, // Data remains fresh for 1 minute
   });
 
   const renderListHeader = () => (
@@ -43,8 +66,8 @@ export default function Index() {
         />
       </View>
 
-      <Text className='text-lg text-white font-bold mt-5 mb-3 px-9'>
-        Popular Movies
+      <Text className='text-lg text-white font-bold mt-5 mb-3'>
+        Latest Movies
       </Text>
     </>
   );
@@ -84,44 +107,20 @@ export default function Index() {
   return (
     <SafeAreaView className='flex-1 bg-primary'>
       <FlatList
-        className='flex-1'
+        className='flex-1 mt-2 pb-32'
         contentContainerStyle={{ paddingHorizontal: 5, paddingBottom: 80 }}
         data={!isLoading && !error ? movies : []}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item?.id?.toString()}
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={renderEmptyState}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            className='bg-[#1D1D3B] mb-3 p-3 mx-4 rounded-lg flex-row items-center'
-            // onPress={() => navigateToMovieDetails(item.id)}
-          >
-            {item.poster_path ? (
-              <Image
-                source={{
-                  uri: `https://image.tmdb.org/t/p/w92${item.poster_path}`,
-                }}
-                className='w-16 h-24 rounded-md mr-3'
-              />
-            ) : (
-              <View className='w-16 h-24 bg-gray-800 rounded-md mr-3 items-center justify-center'>
-                <Text className='text-gray-500'>No Image</Text>
-              </View>
-            )}
-            <View className='flex-1'>
-              <Text className='text-white text-base font-semibold'>
-                {item.title}
-              </Text>
-              <Text className='text-gray-400 text-xs mt-1'>
-                {item.release_date
-                  ? new Date(item.release_date).getFullYear()
-                  : 'Unknown Year'}
-              </Text>
-              <Text className='text-yellow-400 text-xs mt-1'>
-                ★ {item.vote_average.toFixed(1)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        numColumns={3}
+        columnWrapperStyle={{
+          justifyContent: 'flex-start',
+          gap: 20,
+          paddingRight: 5,
+          marginBottom: 10,
+        }}
+        renderItem={({ item }) => <MovieCard {...item} />}
       />
     </SafeAreaView>
   );
