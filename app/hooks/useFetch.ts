@@ -1,39 +1,43 @@
-import { useState, useEffect } from "react";
+import { useQuery, useQueryClient, QueryKey } from '@tanstack/react-query';
 
-const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
-    const [data, setData] = useState<T | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isError, setIsError] = useState<Error | null>(null);
+interface UseFetchOptions {
+    enabled?: boolean;
+    staleTime?: number;
+    cacheTime?: number;
+    refetchOnWindowFocus?: boolean;
+}
 
-    const fetchData = async () => {
-        try {
-            setIsLoading(true);
-            setIsError(null);
+const useFetch = <T>(
+    queryKey: QueryKey,
+    fetchFunction: () => Promise<T>,
+    options: UseFetchOptions = {}
+) => {
+    const queryClient = useQueryClient();
 
-            const result = await fetchFunction();
-            setData(result);
-        } catch (err) {
-            setIsError(
-                err instanceof Error ? err : new Error("An unknown error occurred")
-            );
-        } finally {
-            setIsLoading(false);
-        }
+    const {
+        data,
+        isLoading,
+        error,
+        refetch,
+    } = useQuery({
+        queryKey,
+        queryFn: fetchFunction,
+        enabled: options.enabled !== false, // Default to true if not specified
+        staleTime: options.staleTime || 1000 * 60 * 5, // Default 5 minutes
+        gcTime: options.cacheTime || 1000 * 60 * 30, // Default 30 minutes
+        refetchOnWindowFocus: options.refetchOnWindowFocus ?? true, // Default true
+    });
+
+    const reset = () => queryClient.removeQueries({ queryKey });
+
+
+    return {
+        data: data || null,
+        isLoading,
+        isError: error ? error as Error : null,
+        refetch: async () => { await refetch() },
+        reset,
     };
-
-    const reset = () => {
-        setData(null);
-        setIsError(null);
-        setIsLoading(false);
-    };
-
-    useEffect(() => {
-        if (autoFetch) {
-            fetchData();
-        }
-    }, []);
-
-    return { data, isLoading, isError, refetch: fetchData, reset };
 };
 
 export default useFetch;

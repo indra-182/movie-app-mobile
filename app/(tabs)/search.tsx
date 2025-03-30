@@ -1,37 +1,64 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, Image } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
 
 import { images } from '@/constants/images';
 import { icons } from '@/constants/icons';
 
-import useFetch from '../hooks/useFetch';
-import { fetchMovies } from '../services/api';
-
+import useInfiniteMovies from '../hooks/useInfiniteMovies';
 import MovieCard from '../components/MovieCard';
 import SearchBar from '../components/SearchBar';
 
 const Search = () => {
+  const flatListRef = useRef<FlatList>(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const {
-    data: movies,
-    isLoading,
-    isError,
-    refetch,
-    reset,
-  } = useFetch(() => fetchMovies({ query: searchQuery }), false);
-
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-  };
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   useEffect(() => {
-    const timeoutId = setTimeout(async () => {
-      searchQuery.trim() ? refetch() : reset();
-    }, 1000);
+    const timeoutId = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 500);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  const {
+    movies,
+    isLoading,
+    isError,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+    refetch,
+    reset,
+  } = useInfiniteMovies({
+    query: debouncedQuery,
+    initialLoad: false,
+  });
+
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    if (!text.trim()) {
+      reset();
+    }
+  };
+
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+
+    return (
+      <View className='py-5 items-center'>
+        <ActivityIndicator size='small' color='#AB8BFF' />
+        <Text className='text-gray-400 mt-2'>Loading more movies...</Text>
+      </View>
+    );
+  };
 
   return (
     <View className='flex-1 bg-primary'>
@@ -42,8 +69,9 @@ const Search = () => {
       />
 
       <FlatList
+        ref={flatListRef}
         className='px-5'
-        data={movies as Movie[]}
+        data={movies}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <MovieCard {...item} />}
         numColumns={3}
@@ -53,6 +81,15 @@ const Search = () => {
           marginVertical: 16,
         }}
         contentContainerStyle={{ paddingBottom: 100 }}
+        onEndReached={() => {
+          if (hasMore && !isLoadingMore) {
+            loadMore();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        keyboardShouldPersistTaps='handled'
+        keyboardDismissMode='none'
         ListHeaderComponent={
           <>
             <View className='w-full flex-row justify-center mt-20 items-center'>
@@ -76,27 +113,32 @@ const Search = () => {
             )}
 
             {isError && (
-              <Text className='text-red-500 px-5 my-3'>
-                Error: {isError.message}
-              </Text>
+              <View className='items-center my-3'>
+                <Text className='text-red-500 px-5'>
+                  Error: {isError.message}
+                </Text>
+                <TouchableOpacity
+                  className='mt-3 bg-violet-500 py-2 px-4 rounded-full'
+                  onPress={() => refetch()}
+                >
+                  <Text className='text-white'>Try Again</Text>
+                </TouchableOpacity>
+              </View>
             )}
 
-            {!isLoading &&
-              !isError &&
-              searchQuery.trim() &&
-              movies?.length! > 0 && (
-                <Text className='text-xl text-white font-bold'>
-                  Search Results for{' '}
-                  <Text className='text-accent'>{searchQuery}</Text>
-                </Text>
-              )}
+            {!isLoading && !isError && debouncedQuery && movies.length > 0 && (
+              <Text className='text-xl text-white font-bold'>
+                Search Results for{' '}
+                <Text className='text-accent'>{debouncedQuery}</Text>
+              </Text>
+            )}
           </>
         }
         ListEmptyComponent={
           !isLoading && !isError ? (
             <View className='mt-10 px-5'>
               <Text className='text-center text-gray-500'>
-                {searchQuery.trim()
+                {debouncedQuery
                   ? 'No movies found'
                   : 'Start typing to search for movies'}
               </Text>

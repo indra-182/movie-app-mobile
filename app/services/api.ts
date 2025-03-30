@@ -14,13 +14,21 @@ const tmdbApi = axios.create({
     headers: TMDB_CONFIG.headers
 });
 
-const fetchMovies = async ({ query }: { query: string }) => {
+
+const fetchMovies = async ({ query, page = 1 }: { query: string; page?: number }) => {
     try {
-        const endpoint = query ? `${TMDB_CONFIG.BASE_URL}/search/movie?query=${encodeURIComponent(query)}` : `${TMDB_CONFIG.BASE_URL}/discover/movie?sort_by=popularity.desc`;
+        const endpoint = query
+            ? `/search/movie?query=${encodeURIComponent(query)}&page=${page}`
+            : `/discover/movie?sort_by=popularity.desc&page=${page}`;
 
         const response = await tmdbApi.get(endpoint);
 
-        return response.data.results;
+        return {
+            results: response.data.results,
+            page: response.data.page,
+            total_pages: response.data.total_pages,
+            total_results: response.data.total_results
+        };
     } catch (error) {
         if (axios.isAxiosError(error)) {
             throw new Error(`Failed to fetch movies: ${error.message}`);
@@ -29,7 +37,6 @@ const fetchMovies = async ({ query }: { query: string }) => {
         }
     }
 }
-
 
 const fetchMovieDetails = async (movieId: string) => {
     try {
@@ -45,7 +52,7 @@ const fetchMovieDetails = async (movieId: string) => {
 }
 
 export { fetchMovies, fetchMovieDetails };
-// Add an empty default export to satisfy Expo Router (No Warning in the console)
+// Add an empty default export to satisfy Expo Router
 export default function APIComponent() {
-    return null; // This component will never be rendered
+    return null;
 }
