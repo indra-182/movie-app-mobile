@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import {
   View,
   Text,
@@ -5,18 +6,15 @@ import {
   Image,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import useInfiniteMovies from '../hooks/useInfiniteMovies';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
-import SearchBar from '../components/SearchBar';
 import MovieCard from '../components/MovieCard';
 
 const Index = () => {
-  const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
 
   const {
     movies,
@@ -28,48 +26,54 @@ const Index = () => {
     refetch,
   } = useInfiniteMovies({ query: '', initialLoad: true });
 
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+
+    return (
+      <View className='py-5 items-center'>
+        <ActivityIndicator size='small' color='#AB8BFF' />
+        <Text className='text-gray-400 mt-2'>Loading more movies...</Text>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView className='flex-1 bg-primary'>
+    <View className='flex-1 bg-primary'>
       <Image
         source={images.bg}
-        className='absolute w-full z-0'
+        className='flex-1 absolute w-full z-0'
         resizeMode='cover'
       />
 
       <FlatList
-        className='flex-1'
+        ref={flatListRef}
+        className='px-5'
         data={movies}
-        renderItem={({ item }) => <MovieCard {...item} />}
         keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => <MovieCard {...item} />}
         numColumns={3}
+        columnWrapperStyle={{
+          justifyContent: 'flex-start',
+          gap: 16,
+          marginVertical: 16,
+        }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         onEndReached={() => {
           if (hasMore && !isLoadingMore) {
             loadMore();
           }
         }}
         onEndReachedThreshold={0.5}
-        columnWrapperStyle={{
-          justifyContent: 'flex-start',
-          gap: 20,
-          paddingHorizontal: 20,
-          marginBottom: 10,
-        }}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        ListFooterComponent={renderFooter}
+        keyboardShouldPersistTaps='handled'
+        keyboardDismissMode='none'
         ListHeaderComponent={
           <>
-            <Image
-              source={icons.logo}
-              className='w-12 h-10 mt-20 mb-5 mx-auto'
-            />
-
-            <View className='px-5 mt-5'>
-              <SearchBar
-                onPress={() => router.push('/search')}
-                placeholder='Search for a movie'
-              />
+            <View className='w-full flex-row justify-center mt-20 items-center'>
+              <Image source={icons.logo} className='w-12 h-10' />
             </View>
 
-            <Text className='text-lg text-white font-bold mb-3 px-5 mt-5'>
+            <Text className='mt-5 text-xl text-white font-bold'>
               Latest Movies
             </Text>
 
@@ -77,35 +81,27 @@ const Index = () => {
               <ActivityIndicator
                 size='large'
                 color='#AB8BFF'
-                className='mt-10 self-center'
+                className='my-3'
               />
             )}
 
             {isError && (
-              <View className='items-center mt-10 px-5'>
-                <Text className='text-md text-center text-red-700'>
-                  {isError.message}
+              <View className='items-center my-3'>
+                <Text className='text-red-500 px-5'>
+                  Error: {isError.message}
                 </Text>
                 <TouchableOpacity
-                  className='mt-3 bg-violet-400 py-2 px-4 rounded-full'
+                  className='mt-3 bg-violet-500 py-2 px-4 rounded-full'
                   onPress={() => refetch()}
                 >
-                  <Text className='text-secondary text-base'>Try Again</Text>
+                  <Text className='text-white'>Try Again</Text>
                 </TouchableOpacity>
               </View>
             )}
           </>
         }
-        ListFooterComponent={
-          isLoadingMore ? (
-            <View className='py-5 items-center'>
-              <ActivityIndicator size='small' color='#AB8BFF' />
-              <Text className='text-gray-400 mt-2'>Loading more movies...</Text>
-            </View>
-          ) : null
-        }
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
